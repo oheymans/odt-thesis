@@ -14,3 +14,4 @@ Thumbs.db
 # Data (keep large files out of Git)
 data/
 !data/.gitkeep
+requirements.linux.txt
