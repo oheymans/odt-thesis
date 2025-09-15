@@ -1,42 +1,34 @@
-// unwrap_qgpu_api.cpp
-extern "C" {
-    __declspec(dllexport)
-    void unwrap_phase_QGPU(float *phase, float *soln, int xsize, int ysize);
-}
-
-#include "util.h"
-#include "grad.h"
-#include "extract.h"
-#include "pi.h"
-#include <omp.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "goldstein_core.h"   // declare prototypes there
 
-// Forward declarations from the library
-int Residues_serial(float *phase, unsigned char *bitflags, int xsize, int ysize);
-void GoldsteinBranchCuts_serial(unsigned char *bitflags, int MaxCutLen, int NumRes, int xsize, int ysize);
-int UnwrapAroundCutsGoldstein(float *phase, unsigned char *bitflags, float *soln,
-                              int xsize, int ysize, int *path_order);
+// Thin wrapper to expose a simple API for Python
+void unwrap_phase_QGPU(float *phase, float *soln, int xsize, int ysize) {
+    unsigned char *bitflags;
+    float *gradx, *grady;
+    int *path_order, *list;
 
-void unwrap_phase_QGPU(float *phase, float *soln, int xsize, int ysize)
-{
     int length = xsize * ysize;
 
-    // Allocate helpers
-    unsigned char *bitflags = (unsigned char *)calloc(length, sizeof(unsigned char));
-    int *path_order = (int *)calloc(length, sizeof(int));
+    // Allocate working arrays
+    bitflags = (unsigned char*) calloc(length, sizeof(unsigned char));
+    gradx = (float*) calloc(length, sizeof(float));
+    grady = (float*) calloc(length, sizeof(float));
+    path_order = (int*) calloc(length, sizeof(int));
+    list = (int*) calloc(2 * (xsize + ysize), sizeof(int));
 
-    // Step 1: detect residues
-    int NumRes = Residues_serial(phase, bitflags, xsize, ysize);
-
-    // Step 2: place branch cuts
+    // Algorithm steps from goldstein_core.c
+    Gradxy(phase, gradx, grady, xsize, ysize);
+    int NumRes = Residues_parallel(phase, bitflags, xsize, ysize);
     int MaxCutLen = (xsize + ysize) / 2;
-    GoldsteinBranchCuts_serial(bitflags, MaxCutLen, NumRes, xsize, ysize);
+    GoldsteinBranchCuts_parallel(bitflags, MaxCutLen, NumRes, xsize, ysize);
+    UnwrapAroundCutsFrontier(phase, bitflags, soln, xsize, ysize,
+                             path_order, grady, gradx, list, length);
 
-    // Step 3: unwrap around cuts
-    UnwrapAroundCutsGoldstein(phase, bitflags, soln, xsize, ysize, path_order);
-
-    // Free memory
+    // Free
     free(bitflags);
+    free(gradx);
+    free(grady);
     free(path_order);
+    free(list);
 }
