@@ -12,7 +12,4 @@ imageio
 imagecodecs  
 zarr   
 fsspec
-cv2
-math
-sys
-os
+kamui

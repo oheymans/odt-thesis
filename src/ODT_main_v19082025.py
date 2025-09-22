@@ -18,13 +18,13 @@ class Parameters:
     """
  
     # Directory path to hologram stack for input (str or None)
-    processing_dir = r"C:\Users\oheymans\Desktop\code"
+    processing_dir = os.path.join("..", "data")
 
     # Data types used in various stages of the pipeline
     data_precision = {
         'phase_processing': np.float32,  # Use float64 only if extremely high precision is needed 
         'saving_sinogram_data': np.float32,  # Use float16 only to reduce disk usage (less recommended)                           
-        'phase_reconstruction': np.float64, # Avoid float16 here to preserve resolution and avoid aliasing artifacts.
+        'phase_reconstruction': np.float32, # Avoid float16 here to preserve resolution and avoid aliasing artifacts.
                                             # Use float64 only if reconstruction artifacts arise or if you're doing advanced regularizatio
         'saved_deltan_data': np.float32,  # Use float16 only to reduce disk usage (less recommended)
 
@@ -38,7 +38,7 @@ class Parameters:
 
     # Parameters for collecting the tomograms
     collect_data = {
-        'perform': True,
+        'perform': False,
         'precheck':True,
         'alignment': {
             'perform': True,
@@ -113,7 +113,7 @@ class Parameters:
 
     # Parameters for performing phase extraction and correction
     phase_processing = {
-        'perform': False,  # Enable or disable phase processing (bool)
+        'perform': True,  # Enable or disable phase processing (bool)
         'theta_range': np.arange(0, 361, 45),  # Angular range in degrees to save sinograms (np.ndarray of int)
         'reference_experiment': "Reference_phase_after.tiff",  # File path to hologram of reference experiment (str)
         'Yaxis_nchunks': 12, # devide y axis into chunks to save sinograms (int)
