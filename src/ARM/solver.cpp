@@ -195,8 +195,11 @@ double *UnwrapARM(double *G, double *Msk, double *iW, double *jW, double *F,
     double *jOmega = (double *)malloc(size_image * sizeof(double));
     double *U = (double *)malloc(size_image * sizeof(double));
 
-    memset(iOmega, 1, size_image * sizeof(double));
-    memset(jOmega, 1, size_image * sizeof(double));
+    for (size_t k = 0; k < size_image; ++k) {
+    iOmega[k] = 1.0;
+    jOmega[k] = 1.0;
+}
+
     memset(U, 0, size_image * sizeof(double));
 
     ColumnRowBackwardDifferences(Dx_G, Dy_G, G, imageW, imageH);

@@ -6,18 +6,19 @@ import os
 dll_path = os.path.join(os.path.dirname(__file__), "arm.dll")
 lib = ctypes.CDLL(dll_path)
 
-# Define ctypes signature for UnwrapARM
+# Define ctypes signature for UnwrapARM (matches solver.cpp)
 lib.UnwrapARM.argtypes = [
-    np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, flags="C_CONTIGUOUS"),  # G (wrapped)
+    np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, flags="C_CONTIGUOUS"),  # G (wrapped phase)
     np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, flags="C_CONTIGUOUS"),  # Msk
     np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, flags="C_CONTIGUOUS"),  # iW
     np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, flags="C_CONTIGUOUS"),  # jW
-    np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, flags="C_CONTIGUOUS"),  # F (unwrapped)
+    np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, flags="C_CONTIGUOUS"),  # F (initial guess, usually zeros)
     ctypes.c_double, ctypes.c_double,  # mu, lambda
     ctypes.c_int, ctypes.c_int,        # numIter, ban_OmegaInit
-    ctypes.c_int, ctypes.c_int         # imageW (cols), imageH (rows)
+    ctypes.c_int, ctypes.c_int         # imageW, imageH
 ]
-# default: pointer, will override inside function
+
+# Return type is a pointer to double
 lib.UnwrapARM.restype = ctypes.POINTER(ctypes.c_double)
 
 
@@ -33,18 +34,17 @@ def unwrap_phase_ARM(phi_wrap, mask=None, mu=1.0, lam=0.1, nIter=500, ban_OmegaI
 
     iW = np.zeros_like(phi_wrap, dtype=np.float64)
     jW = np.zeros_like(phi_wrap, dtype=np.float64)
-    F = np.zeros_like(phi_wrap, dtype=np.float64)  # output buffer
+    F  = np.zeros_like(phi_wrap, dtype=np.float64)
 
-    # set correct return type dynamically now that we know rows, cols
-    lib.UnwrapARM.restype = np.ctypeslib.ndpointer(
-        dtype=np.float64, ndim=2, shape=(rows, cols)
-    )
+    # Set return type to a numpy array of shape (rows, cols)
+    lib.UnwrapARM.restype = np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, shape=(rows, cols))
 
     unwrapped = lib.UnwrapARM(
-        phi_wrap, mask, iW, jW, F,
-        float(mu), float(lam), int(nIter), int(ban_OmegaInit),
-        cols, rows
+    phi_wrap, mask, iW, jW, F,
+    float(mu), float(lam),
+    int(nIter), int(ban_OmegaInit),
+    cols, rows
     )
 
-    # copy to ensure Python owns the memory
+    # Copy to Python-owned memory
     return np.array(unwrapped, copy=True)
