@@ -31,4 +31,5 @@ def reliability_weight_map(wrapped_phase, eps=1e-6):
 
     # convert to weights
     W = 1.0 / (R + eps)
+    
     return W
